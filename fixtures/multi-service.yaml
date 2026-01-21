@@ -1,0 +1,27 @@
+# Multi-service compose file for e2e testing
+# Tests multiple services with dependencies
+
+x-lissto:
+  title: "E2E Multi-Service Test"
+
+services:
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    labels:
+      lissto.dev/expose: "internal"
+    depends_on:
+      - backend
+
+  backend:
+    image: busybox:latest
+    command: ["sh", "-c", "echo 'Backend running' && sleep infinity"]
+    ports:
+      - "8080:8080"
+
+  worker:
+    image: busybox:latest
+    command: ["sh", "-c", "echo 'Worker running' && sleep infinity"]
+    labels:
+      lissto.dev/class: "workload"

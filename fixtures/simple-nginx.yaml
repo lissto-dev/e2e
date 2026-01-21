@@ -1,0 +1,10 @@
+# Simple nginx compose file for e2e testing
+# Uses public image that's always available
+
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    labels:
+      lissto.dev/expose: "internal"

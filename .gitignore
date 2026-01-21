@@ -1,0 +1,24 @@
+# Binaries
+lissto
+*.exe
+
+# Test output
+e2e-results.xml
+*.log
+
+# Go
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+tmp/

@@ -1,0 +1,130 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      cli_ref:
+        description: 'CLI version (tag like v0.1.6, or branch for source build)'
+        default: 'latest'
+        type: string
+      api_ref:
+        description: 'API image tag'
+        default: 'main'
+        type: string
+      controller_ref:
+        description: 'Controller image tag'
+        default: 'main'
+        type: string
+      helm_ref:
+        description: 'Helm chart branch/tag'
+        default: 'main'
+        type: string
+      use_helm_versions:
+        description: 'Use versions from Helm values.yaml (ignore api_ref/controller_ref)'
+        default: false
+        type: boolean
+
+  schedule:
+    # Nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+
+  push:
+    branches:
+      - main
+    paths:
+      - 'tests/**'
+      - 'scripts/**'
+      - 'fixtures/**'
+      - '.github/workflows/e2e.yaml'
+      - 'go.mod'
+      - 'go.sum'
+
+env:
+  CLUSTER_NAME: lissto-e2e
+  GO_VERSION: '1.22'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: make deps
+
+      - name: Install k3d
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+          k3d version
+
+      - name: Create cluster
+        run: make cluster-create
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Deploy Lissto
+        run: make deploy
+        env:
+          API_TAG: ${{ inputs.api_ref || 'main' }}
+          CONTROLLER_TAG: ${{ inputs.controller_ref || 'main' }}
+          HELM_REF: ${{ inputs.helm_ref || 'main' }}
+          USE_HELM_VERSIONS: ${{ inputs.use_helm_versions || 'false' }}
+
+      - name: Download CLI
+        run: make download-cli CLI_REF=${{ inputs.cli_ref || 'latest' }}
+
+      - name: Configure CLI
+        run: make setup-cli
+
+      - name: Wait for ready
+        run: make wait-ready
+
+      - name: Run E2E Tests
+        run: make test
+        env:
+          JUNIT_REPORT: e2e-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: e2e-results.xml
+          retention-days: 30
+
+      - name: Test Summary
+        if: always()
+        uses: test-summary/action@v2
+        with:
+          paths: e2e-results.xml
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Lissto System Pods ==="
+          kubectl get pods -n lissto-system -o wide
+          echo ""
+          echo "=== API Logs ==="
+          kubectl logs -n lissto-system -l app.kubernetes.io/name=api --tail=100 || true
+          echo ""
+          echo "=== Controller Logs ==="
+          kubectl logs -n lissto-system -l app.kubernetes.io/name=controller --tail=100 || true
+          echo ""
+          echo "=== Events ==="
+          kubectl get events -n lissto-system --sort-by='.lastTimestamp' | tail -50
+
+      - name: Cleanup cluster
+        if: always()
+        run: make cluster-delete
