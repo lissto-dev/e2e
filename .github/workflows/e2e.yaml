@@ -41,7 +41,7 @@ on:
 
 env:
   CLUSTER_NAME: lissto-e2e
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.24'
 
 jobs:
   e2e:
@@ -62,9 +62,7 @@ jobs:
         run: make deps
 
       - name: Install k3d
-        run: |
-          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
-          k3d version
+        run: make install-k3d
 
       - name: Create cluster
         run: make cluster-create

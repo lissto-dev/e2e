@@ -15,7 +15,7 @@ This repository contains e2e tests that validate the full Lissto stack:
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.24+
 - Docker
 - kubectl
 - Helm 3+

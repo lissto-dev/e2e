@@ -1,8 +1,5 @@
 # Multi-service compose file for e2e testing
-# Tests multiple services with dependencies
-
-x-lissto:
-  title: "E2E Multi-Service Test"
+# Tests multiple services, build service, and volumes
 
 services:
   frontend:
@@ -11,17 +8,24 @@ services:
       - "80:80"
     labels:
       lissto.dev/expose: "internal"
-    depends_on:
-      - backend
+    volumes:
+      - app-data:/usr/share/nginx/html
 
   backend:
-    image: busybox:latest
-    command: ["sh", "-c", "echo 'Backend running' && sleep infinity"]
+    image: redis:7-alpine
     ports:
-      - "8080:8080"
-
-  worker:
-    image: busybox:latest
-    command: ["sh", "-c", "echo 'Worker running' && sleep infinity"]
+      - "6379:6379"
     labels:
-      lissto.dev/class: "workload"
+      lissto.dev/expose: "none"
+
+  # Build service with repository label - critical for Lissto
+  app:
+    image: alpine:3.20
+    command: ["sh", "-c", "echo 'App running' && sleep infinity"]
+    labels:
+      lissto.dev/repository: "ghcr.io/lissto-dev/example-app"
+      lissto.dev/expose: "none"
+
+# Named volume for pause/resume testing
+volumes:
+  app-data:

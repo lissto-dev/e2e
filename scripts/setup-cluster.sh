@@ -17,29 +17,24 @@ fi
 # Create cluster with:
 # - 1 server node
 # - Port mappings for ingress (80, 443)
-# - Disable traefik (we'll use nginx-ingress for consistency)
+# - Traefik enabled by default (k3d default)
 k3d cluster create "$CLUSTER_NAME" \
     --image "$K3S_IMAGE" \
     --servers 1 \
     --agents 0 \
     --port "8080:80@loadbalancer" \
     --port "8443:443@loadbalancer" \
-    --k3s-arg "--disable=traefik@server:0" \
     --wait
 
 # Wait for cluster to be ready
 echo "⏳ Waiting for cluster to be ready..."
 kubectl wait --for=condition=Ready nodes --all --timeout=120s
 
-# Install nginx ingress controller
-echo "📦 Installing nginx ingress controller..."
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/cloud/deploy.yaml
-
-# Wait for ingress controller to be ready
-echo "⏳ Waiting for ingress controller..."
-kubectl wait --namespace ingress-nginx \
+# Wait for Traefik to be ready (k3d default ingress controller)
+echo "⏳ Waiting for Traefik ingress controller..."
+kubectl wait --namespace kube-system \
     --for=condition=ready pod \
-    --selector=app.kubernetes.io/component=controller \
+    --selector=app.kubernetes.io/name=traefik \
     --timeout=120s
 
 # Create lissto-system namespace

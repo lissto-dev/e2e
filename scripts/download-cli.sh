@@ -72,8 +72,8 @@ else
         git fetch --depth 1 origin "$CLI_REF" 2>/dev/null && git checkout FETCH_HEAD || true
     fi
     
-    # Build
-    go build -o lissto .
+    # Build using make for consistent build tags
+    make build
     
     # Install
     chmod +x lissto

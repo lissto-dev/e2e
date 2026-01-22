@@ -33,9 +33,8 @@ func ReadFixture(name string) (string, error) {
 
 // Common fixture names
 const (
-	FixtureSimpleNginx   = "simple-nginx.yaml"
-	FixtureMultiService  = "multi-service.yaml"
-	FixtureLisstoDogfood = "lissto-dogfood.yaml"
+	FixtureSimpleNginx  = "simple-nginx.yaml"
+	FixtureMultiService = "multi-service.yaml"
 )
 
 // TestRepository is the repository URL configured in test Helm values

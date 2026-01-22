@@ -10,23 +10,32 @@ echo "⏳ Waiting for Lissto components to be ready..."
 echo "   Namespace: $NAMESPACE"
 echo "   Timeout: ${TIMEOUT}s"
 
-# Wait for CRDs to be established
+# Wait for CRDs to be established (dynamically discovered from installed chart)
 echo ""
-echo "📋 Waiting for CRDs..."
-CRDS=(
-    "blueprints.env.lissto.dev"
-    "stacks.env.lissto.dev"
-    "envs.env.lissto.dev"
-    "lisstovariables.env.lissto.dev"
-    "lisstosecrets.env.lissto.dev"
-)
+echo "📋 Waiting for Lissto CRDs..."
 
-for crd in "${CRDS[@]}"; do
-    echo "   Waiting for CRD: $crd"
-    kubectl wait --for=condition=Established crd/"$crd" --timeout="${TIMEOUT}s" 2>/dev/null || {
-        echo "   ⚠️  CRD $crd not found, might be installed differently"
-    }
+# Dynamically discover all lissto.dev CRDs
+MAX_CRD_WAIT=60
+CRD_WAIT=0
+while [ $CRD_WAIT -lt $MAX_CRD_WAIT ]; do
+    CRDS=$(kubectl get crds -o name 2>/dev/null | grep "lissto.dev" | sed 's|customresourcedefinition.apiextensions.k8s.io/||' || true)
+    if [ -n "$CRDS" ]; then
+        break
+    fi
+    echo "   Waiting for Lissto CRDs to appear..."
+    sleep 5
+    CRD_WAIT=$((CRD_WAIT + 5))
 done
+
+if [ -z "$CRDS" ]; then
+    echo "   ⚠️  No Lissto CRDs found after ${MAX_CRD_WAIT}s"
+else
+    echo "   Found CRDs: $(echo $CRDS | tr '\n' ' ')"
+    for crd in $CRDS; do
+        echo "   Waiting for CRD: $crd"
+        kubectl wait --for=condition=Established "crd/$crd" --timeout="${TIMEOUT}s"
+    done
+fi
 
 # Wait for deployments
 echo ""
