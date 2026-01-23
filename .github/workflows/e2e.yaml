@@ -41,7 +41,7 @@ on:
 
 env:
   CLUSTER_NAME: lissto-e2e
-  GO_VERSION: '1.24'
+  GO_VERSION: '1.23'
 
 jobs:
   e2e:
