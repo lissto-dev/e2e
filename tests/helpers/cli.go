@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	// RoleAdmin is the admin role for blueprint operations
+	// RoleAdmin is the admin role for read/delete operations
 	RoleAdmin = "e2e-admin"
-	// RoleUser is the user role for stack operations
+	// RoleDeploy is the deploy role for global blueprint creation
+	RoleDeploy = "e2e-deploy"
+	// RoleUser is the user role for stack and user blueprint operations
 	RoleUser = "e2e-user"
 )
 
@@ -58,6 +60,11 @@ func (r *CLIRunner) RunAsAdmin(args ...string) (string, error) {
 	return r.RunAs(RoleAdmin, args...)
 }
 
+// RunAsDeploy executes a CLI command as deploy
+func (r *CLIRunner) RunAsDeploy(args ...string) (string, error) {
+	return r.RunAs(RoleDeploy, args...)
+}
+
 // RunAsUser executes a CLI command as user
 func (r *CLIRunner) RunAsUser(args ...string) (string, error) {
 	return r.RunAs(RoleUser, args...)
@@ -92,23 +99,35 @@ func (r *CLIRunner) runCommand(args ...string) (string, error) {
 	return output, nil
 }
 
-// BlueprintCreate creates a blueprint from a compose file
+// BlueprintCreate creates a blueprint from a compose file as user (goes to user namespace)
 func (r *CLIRunner) BlueprintCreate(composePath, repository string) (string, error) {
 	args := []string{"blueprint", "create", composePath}
 	if repository != "" {
 		args = append(args, "--repository", repository)
 	}
-	return r.RunAsAdmin(args...)
+	return r.RunAsUser(args...)
+}
+
+// BlueprintCreateGlobal creates a global blueprint using deploy role with --branch flag
+func (r *CLIRunner) BlueprintCreateGlobal(composePath, repository, branch string) (string, error) {
+	args := []string{"blueprint", "create", composePath}
+	if repository != "" {
+		args = append(args, "--repository", repository)
+	}
+	if branch != "" {
+		args = append(args, "--branch", branch)
+	}
+	return r.RunAsDeploy(args...)
 }
 
 // BlueprintList lists all blueprints
 func (r *CLIRunner) BlueprintList() (string, error) {
-	return r.RunAsAdmin("blueprint", "list")
+	return r.RunAsUser("blueprint", "list")
 }
 
 // BlueprintGet gets a specific blueprint
 func (r *CLIRunner) BlueprintGet(name string) (string, error) {
-	return r.RunAsAdmin("blueprint", "get", name)
+	return r.RunAsUser("blueprint", "get", name)
 }
 
 // BlueprintDelete deletes a blueprint

@@ -14,10 +14,12 @@ import (
 var _ = Describe("Cleanup", Ordered, func() {
 	var k8s *helpers.K8sClient
 	var cli *helpers.CLIRunner
-	var blueprintID string
+	var userBlueprintID string
+	var userBlueprintName string
+	var globalBlueprintID string
+	var globalBlueprintName string
 	var stackID string
 	var stackName string
-	var blueprintName string
 	var userNamespace string
 	ctx := context.Background()
 
@@ -32,18 +34,31 @@ var _ = Describe("Cleanup", Ordered, func() {
 		By("Creating resources to clean up")
 		fixturePath := helpers.GetFixturePath(helpers.FixtureSimpleNginx)
 
-		// Create blueprint
+		// Create user blueprint (goes to user namespace)
 		output, err := cli.BlueprintCreate(fixturePath, helpers.TestRepository)
-		Expect(err).NotTo(HaveOccurred())
-		blueprintID = helpers.ExtractBlueprintID(output)
-		parts := strings.Split(blueprintID, "/")
+		Expect(err).NotTo(HaveOccurred(), "User blueprint creation should succeed")
+		userBlueprintID = helpers.ExtractBlueprintID(output)
+		parts := strings.Split(userBlueprintID, "/")
 		if len(parts) == 2 {
-			blueprintName = parts[1]
+			userBlueprintName = parts[1]
+		} else {
+			userBlueprintName = userBlueprintID
 		}
 
-		// Create stack
-		output, err = cli.StackCreate(blueprintID)
-		Expect(err).NotTo(HaveOccurred())
+		// Create global blueprint (goes to global namespace)
+		output, err = cli.BlueprintCreateGlobal(fixturePath, helpers.TestRepository, "main")
+		Expect(err).NotTo(HaveOccurred(), "Global blueprint creation should succeed")
+		globalBlueprintID = helpers.ExtractBlueprintID(output)
+		parts = strings.Split(globalBlueprintID, "/")
+		if len(parts) == 2 {
+			globalBlueprintName = parts[1]
+		} else {
+			globalBlueprintName = globalBlueprintID
+		}
+
+		// Create stack from user blueprint
+		output, err = cli.StackCreate(userBlueprintID)
+		Expect(err).NotTo(HaveOccurred(), "Stack creation should succeed")
 		stackID = helpers.ExtractStackID(output)
 		parts = strings.Split(stackID, "/")
 		if len(parts) == 2 {
@@ -57,7 +72,8 @@ var _ = Describe("Cleanup", Ordered, func() {
 			return k8s.StackExists(ctx, userNamespace, stackName)
 		}, 60*time.Second, 5*time.Second).Should(BeTrue())
 
-		GinkgoWriter.Printf("Created blueprint: %s (name: %s)\n", blueprintID, blueprintName)
+		GinkgoWriter.Printf("Created user blueprint: %s (name: %s)\n", userBlueprintID, userBlueprintName)
+		GinkgoWriter.Printf("Created global blueprint: %s (name: %s)\n", globalBlueprintID, globalBlueprintName)
 		GinkgoWriter.Printf("Created stack: %s (name: %s)\n", stackID, stackName)
 	})
 
@@ -95,26 +111,42 @@ var _ = Describe("Cleanup", Ordered, func() {
 		})
 	})
 
-	Describe("Blueprint Deletion (Admin Role)", func() {
+	Describe("User Blueprint Deletion", func() {
+		It("should allow user to delete their own blueprint", func() {
+			By("Deleting user blueprint via CLI as user")
+			output, err := cli.RunAsUser("blueprint", "delete", userBlueprintID)
+			Expect(err).NotTo(HaveOccurred(), "User should be able to delete their own blueprint: %s", output)
+		})
+
+		It("should remove user Blueprint CRD", func() {
+			By("Waiting for Blueprint CRD to be deleted")
+			Eventually(func() bool {
+				return !k8s.BlueprintExists(ctx, userNamespace, userBlueprintName)
+			}, 30*time.Second, 2*time.Second).Should(BeTrue(),
+				"User Blueprint CRD should be deleted")
+		})
+	})
+
+	Describe("Global Blueprint Deletion (Admin Role)", func() {
 		It("should not allow user to delete global blueprint", func() {
-			By("Attempting to delete blueprint as user")
-			_, err := cli.RunAsUser("blueprint", "delete", blueprintID)
+			By("Attempting to delete global blueprint as user")
+			_, err := cli.RunAsUser("blueprint", "delete", globalBlueprintID)
 			Expect(err).To(HaveOccurred(),
 				"User should NOT be able to delete global blueprints")
 		})
 
-		It("should delete the blueprint as admin", func() {
-			By("Deleting blueprint via CLI as admin")
-			output, err := cli.BlueprintDelete(blueprintID)
-			Expect(err).NotTo(HaveOccurred(), "Blueprint deletion should succeed: %s", output)
+		It("should delete the global blueprint as admin", func() {
+			By("Deleting global blueprint via CLI as admin")
+			output, err := cli.BlueprintDelete(globalBlueprintID)
+			Expect(err).NotTo(HaveOccurred(), "Admin blueprint deletion should succeed: %s", output)
 		})
 
-		It("should remove Blueprint CRD", func() {
+		It("should remove global Blueprint CRD", func() {
 			By("Waiting for Blueprint CRD to be deleted")
 			Eventually(func() bool {
-				return !k8s.BlueprintExists(ctx, helpers.GlobalNamespace, blueprintName)
+				return !k8s.BlueprintExists(ctx, helpers.GlobalNamespace, globalBlueprintName)
 			}, 30*time.Second, 2*time.Second).Should(BeTrue(),
-				"Blueprint CRD should be deleted")
+				"Global Blueprint CRD should be deleted")
 		})
 	})
 
@@ -123,8 +155,11 @@ var _ = Describe("Cleanup", Ordered, func() {
 			By("Verifying stack is gone")
 			Expect(k8s.StackExists(ctx, userNamespace, stackName)).To(BeFalse())
 
-			By("Verifying blueprint is gone")
-			Expect(k8s.BlueprintExists(ctx, helpers.GlobalNamespace, blueprintName)).To(BeFalse())
+			By("Verifying user blueprint is gone")
+			Expect(k8s.BlueprintExists(ctx, userNamespace, userBlueprintName)).To(BeFalse())
+
+			By("Verifying global blueprint is gone")
+			Expect(k8s.BlueprintExists(ctx, helpers.GlobalNamespace, globalBlueprintName)).To(BeFalse())
 		})
 	})
 })

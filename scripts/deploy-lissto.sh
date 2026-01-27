@@ -98,6 +98,9 @@ api_keys:
   - role: admin
     api_key: "e2e-test-admin-key-abc123"
     name: "e2e-admin"
+  - role: deploy
+    api_key: "e2e-test-deploy-key-deploy456"
+    name: "e2e-deploy"
   - role: user
     api_key: "e2e-test-user-key-xyz789"
     name: "e2e-user"

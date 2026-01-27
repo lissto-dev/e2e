@@ -61,6 +61,11 @@ var _ = Describe("Setup Validation", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred(), "Should switch to admin context: %s", output)
 		})
 
+		It("should have deploy context configured", func() {
+			output, err := cli.Run("context", "use", helpers.RoleDeploy)
+			Expect(err).NotTo(HaveOccurred(), "Should switch to deploy context: %s", output)
+		})
+
 		It("should have user context configured", func() {
 			output, err := cli.Run("context", "use", helpers.RoleUser)
 			Expect(err).NotTo(HaveOccurred(), "Should switch to user context: %s", output)

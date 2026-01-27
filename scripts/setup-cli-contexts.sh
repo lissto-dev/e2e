@@ -2,13 +2,14 @@
 set -euo pipefail
 
 # Setup CLI contexts for e2e testing
-# Creates two contexts: e2e-admin and e2e-user
+# Creates three contexts: e2e-admin, e2e-deploy, and e2e-user
 
 NAMESPACE="${NAMESPACE:-lissto-system}"
 SERVICE_NAME="${SERVICE_NAME:-lissto-api}"
 
 # API keys (must match what's configured in Helm values)
 ADMIN_API_KEY="${ADMIN_API_KEY:-e2e-test-admin-key-abc123}"
+DEPLOY_API_KEY="${DEPLOY_API_KEY:-e2e-test-deploy-key-deploy456}"
 USER_API_KEY="${USER_API_KEY:-e2e-test-user-key-xyz789}"
 
 echo "🔧 Setting up CLI contexts..."
@@ -36,7 +37,7 @@ if [ -z "$API_URL" ]; then
     echo "   No ingress found, CLI will use port-forward"
 fi
 
-# Create config file with both contexts
+# Create config file with all contexts
 cat > "$CONFIG_DIR/config.yaml" << EOF
 current-context: e2e-admin
 current-env: ""
@@ -46,6 +47,12 @@ contexts:
     service-name: ${SERVICE_NAME}
     service-namespace: ${NAMESPACE}
     api-key: ${ADMIN_API_KEY}
+    api-url: "${API_URL}"
+  - name: e2e-deploy
+    kube-context: ${KUBE_CONTEXT}
+    service-name: ${SERVICE_NAME}
+    service-namespace: ${NAMESPACE}
+    api-key: ${DEPLOY_API_KEY}
     api-url: "${API_URL}"
   - name: e2e-user
     kube-context: ${KUBE_CONTEXT}
@@ -60,8 +67,9 @@ EOF
 echo "✅ CLI contexts created!"
 echo ""
 echo "Available contexts:"
-echo "  - e2e-admin (admin role - for blueprint operations)"
-echo "  - e2e-user  (user role  - for stack operations)"
+echo "  - e2e-admin  (admin role  - for read/delete operations)"
+echo "  - e2e-deploy (deploy role - for global blueprint creation)"
+echo "  - e2e-user   (user role   - for stack and user blueprint operations)"
 echo ""
 echo "Current context: e2e-admin"
 echo ""
