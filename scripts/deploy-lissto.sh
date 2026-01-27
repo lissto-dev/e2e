@@ -50,6 +50,10 @@ controller:
   image:
     tag: "${CONTROLLER_TAG}"
 
+# Disable slack-bot for e2e tests (not needed)
+bot:
+  enabled: false
+
 # Test configuration
 config:
   data:
