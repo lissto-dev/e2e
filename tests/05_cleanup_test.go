@@ -31,6 +31,10 @@ var _ = Describe("Cleanup", Ordered, func() {
 		cli = helpers.NewCLIRunner()
 		userNamespace = helpers.GetUserNamespace("e2e-user")
 
+		By("Ensuring environment exists for stack creation")
+		err = cli.EnsureEnv(helpers.TestEnvName)
+		Expect(err).NotTo(HaveOccurred(), "Environment creation should succeed")
+
 		By("Creating resources to clean up")
 		fixturePath := helpers.GetFixturePath(helpers.FixtureSimpleNginx)
 

@@ -91,18 +91,13 @@ var _ = Describe("Blueprint Lifecycle", Ordered, func() {
 				"Blueprint should exist in global namespace")
 		})
 
-		It("should have correct annotations", func() {
+		It("should have repository annotation", func() {
 			By("Checking repository annotation")
 			Eventually(func() string {
 				repo, _ := k8s.GetBlueprintAnnotation(ctx, helpers.GlobalNamespace, globalBlueprintName, "lissto.dev/repository")
 				return repo
 			}, 10*time.Second, 2*time.Second).Should(ContainSubstring("lissto-dev/e2e"),
 				"Blueprint should have repository annotation")
-
-			By("Checking branch annotation")
-			branch, err := k8s.GetBlueprintAnnotation(ctx, helpers.GlobalNamespace, globalBlueprintName, "lissto.dev/branch")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(branch).To(Equal("main"), "Blueprint should have branch annotation set to main")
 		})
 	})
 

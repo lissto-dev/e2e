@@ -135,6 +135,37 @@ func (r *CLIRunner) BlueprintDelete(name string) (string, error) {
 	return r.RunAsAdmin("blueprint", "delete", name)
 }
 
+// EnvCreate creates an environment for the user
+func (r *CLIRunner) EnvCreate(name string) (string, error) {
+	return r.RunAsUser("env", "create", name)
+}
+
+// EnvUse selects an environment
+func (r *CLIRunner) EnvUse(name string) (string, error) {
+	return r.RunAsUser("env", "use", name)
+}
+
+// EnvExists checks if an environment exists (returns true if it does)
+func (r *CLIRunner) EnvExists(name string) bool {
+	_, err := r.RunAsUser("env", "get", name)
+	return err == nil
+}
+
+// EnsureEnv creates an environment if it doesn't exist and selects it
+func (r *CLIRunner) EnsureEnv(name string) error {
+	// Try to use it first (will fail if doesn't exist)
+	if _, err := r.EnvUse(name); err == nil {
+		return nil
+	}
+	// Create it
+	if _, err := r.EnvCreate(name); err != nil {
+		return err
+	}
+	// Select it
+	_, err := r.EnvUse(name)
+	return err
+}
+
 // StackCreate creates a stack from a blueprint
 func (r *CLIRunner) StackCreate(blueprintID string) (string, error) {
 	return r.RunAsUser("stack", "create", blueprintID)

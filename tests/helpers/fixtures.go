@@ -47,6 +47,9 @@ const (
 	UserNamespacePrefix   = "dev-"
 )
 
+// TestEnvName is the default environment name for e2e tests
+const TestEnvName = "e2e-user"
+
 // GetUserNamespace returns the expected user namespace for a given user
 func GetUserNamespace(username string) string {
 	return UserNamespacePrefix + username

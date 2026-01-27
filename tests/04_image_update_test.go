@@ -29,6 +29,10 @@ var _ = Describe("Image Update", Ordered, func() {
 		cli = helpers.NewCLIRunner()
 		userNamespace = helpers.GetUserNamespace("e2e-user")
 
+		By("Ensuring environment exists for stack creation")
+		err = cli.EnsureEnv(helpers.TestEnvName)
+		Expect(err).NotTo(HaveOccurred(), "Environment creation should succeed")
+
 		By("Creating blueprint for image update test")
 		fixturePath := helpers.GetFixturePath(helpers.FixtureSimpleNginx)
 		output, err := cli.BlueprintCreate(fixturePath, helpers.TestRepository)
