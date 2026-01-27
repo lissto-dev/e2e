@@ -78,7 +78,7 @@ var _ = Describe("Stack Lifecycle", Ordered, func() {
 			stack, err := k8s.GetStack(ctx, userNamespace, stackName)
 			Expect(err).NotTo(HaveOccurred())
 
-			spec, found, _ := stack.Object["spec"].(map[string]interface{})
+			spec, found := stack.Object["spec"].(map[string]interface{})
 			Expect(found).To(BeTrue(), "Stack should have spec")
 
 			bpRef, _ := spec["blueprintReference"].(string)
