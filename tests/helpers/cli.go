@@ -153,16 +153,16 @@ func (r *CLIRunner) EnvExists(name string) bool {
 
 // EnsureEnv creates an environment if it doesn't exist and selects it
 func (r *CLIRunner) EnsureEnv(name string) error {
-	// Try to use it first (will fail if doesn't exist)
-	if _, err := r.EnvUse(name); err == nil {
-		return nil
-	}
-	// Create it
-	if _, err := r.EnvCreate(name); err != nil {
-		return err
-	}
+	// Always try to create first (idempotent - will succeed or return "already exists")
+	_, createErr := r.EnvCreate(name)
+	// Ignore create error - it may already exist
+
 	// Select it
 	_, err := r.EnvUse(name)
+	if err != nil && createErr != nil {
+		// Both failed - return the create error which is more informative
+		return createErr
+	}
 	return err
 }
 
