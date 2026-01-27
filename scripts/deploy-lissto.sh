@@ -64,15 +64,6 @@ config:
         name: "E2E Test Repository"
         branches: ["main"]
 
-    # Test API keys
-    api_keys:
-      - role: admin
-        api_key: "e2e-test-admin-key-abc123"
-        name: "e2e-admin"
-      - role: user
-        api_key: "e2e-test-user-key-xyz789"
-        name: "e2e-user"
-
     # Namespace configuration
     namespaces:
       global: "lissto-global"
@@ -98,6 +89,26 @@ cat "$VALUES_OVERRIDE"
 
 # Ensure namespace exists
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+# Create API keys secret (API reads keys from this secret, not from config)
+echo "🔑 Creating API keys secret..."
+API_KEYS_YAML="$HELM_TEMP_DIR/api-keys.yaml"
+cat > "$API_KEYS_YAML" << EOF
+api_keys:
+  - role: admin
+    api_key: "e2e-test-admin-key-abc123"
+    name: "e2e-admin"
+  - role: user
+    api_key: "e2e-test-user-key-xyz789"
+    name: "e2e-user"
+EOF
+
+kubectl create secret generic lissto-api-keys \
+    --namespace "$NAMESPACE" \
+    --from-file=api-keys.yaml="$API_KEYS_YAML" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+echo "   Created secret lissto-api-keys with test API keys"
 
 # Install or upgrade Helm release
 echo "🔧 Installing Helm release..."
