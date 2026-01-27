@@ -6,7 +6,23 @@ set -euo pipefail
 CLI_REF="${1:-latest}"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 OS="${OS:-linux}"
-ARCH="${ARCH:-amd64}"
+
+# Auto-detect architecture if not set
+if [ -z "${ARCH:-}" ]; then
+    MACHINE_ARCH=$(uname -m)
+    case "$MACHINE_ARCH" in
+        x86_64)
+            ARCH="amd64"
+            ;;
+        aarch64|arm64)
+            ARCH="arm64"
+            ;;
+        *)
+            echo "❌ Unsupported architecture: $MACHINE_ARCH"
+            exit 1
+            ;;
+    esac
+fi
 
 echo "📦 Downloading Lissto CLI..."
 echo "   Version: $CLI_REF"

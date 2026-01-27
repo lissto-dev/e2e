@@ -31,11 +31,17 @@ echo "⏳ Waiting for cluster to be ready..."
 kubectl wait --for=condition=Ready nodes --all --timeout=120s
 
 # Wait for Traefik to be ready (k3d default ingress controller)
+# Note: Traefik labels vary between k3s versions, so we try multiple selectors
 echo "⏳ Waiting for Traefik ingress controller..."
 kubectl wait --namespace kube-system \
     --for=condition=ready pod \
     --selector=app.kubernetes.io/name=traefik \
-    --timeout=120s
+    --timeout=120s 2>/dev/null || \
+kubectl wait --namespace kube-system \
+    --for=condition=ready pod \
+    --selector=app=traefik \
+    --timeout=120s 2>/dev/null || \
+echo "   ⚠️  Traefik not found or not ready (continuing anyway - using port-forward)"
 
 # Create lissto-system namespace
 kubectl create namespace lissto-system --dry-run=client -o yaml | kubectl apply -f -
