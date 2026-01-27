@@ -18,6 +18,7 @@ USE_HELM_VERSIONS ?= false
 # Test parameters
 TEST_TIMEOUT ?= 30m
 JUNIT_REPORT ?= e2e-results.xml
+JSON_REPORT ?= e2e-results.json
 GINKGO_FLAGS ?=  # Extra flags for ginkgo (e.g., --vv --progress)
 
 .PHONY: help
@@ -78,7 +79,7 @@ wait-ready: ## Wait for all components to be ready
 
 .PHONY: test
 test: ## Run all e2e tests
-	cd tests && $(GINKGO) -v --timeout=$(TEST_TIMEOUT) --junit-report=../$(JUNIT_REPORT) $(GINKGO_FLAGS) ./...
+	cd tests && $(GINKGO) -v --timeout=$(TEST_TIMEOUT) --junit-report=../$(JUNIT_REPORT) --json-report=../$(JSON_REPORT) $(GINKGO_FLAGS) ./...
 
 .PHONY: test-focus
 test-focus: ## Run tests matching FOCUS pattern (e.g., make test-focus FOCUS="Blueprint")
